@@ -472,7 +472,8 @@ const PLAYER_SPEED = 32;
 const MODE_KEY = 'p5_threestars_mode_v14';
 const MARKER_ORDER_KEY = 'p5_threestars_marker_order_v16';
 
-let selfRole = localStorage.getItem('p5_threestars_self_role') || 'D1';
+const SELF_ROLE_KEY = 'p5_threestars_self_role_v31';
+let selfRole = localStorage.getItem(SELF_ROLE_KEY) || 'MT';
 let mode = localStorage.getItem(MODE_KEY) || 'practice';
 let markerOrder = localStorage.getItem(MARKER_ORDER_KEY) || '2341';
 if(markerOrder !== '2341' && markerOrder !== '1234') markerOrder = '2341';
@@ -631,7 +632,7 @@ function renderRoleButtons(){
     btn.className = role === selfRole ? 'active' : '';
     btn.onclick = () => {
       selfRole = role;
-      localStorage.setItem('p5_threestars_self_role', selfRole);
+      localStorage.setItem(SELF_ROLE_KEY, selfRole);
       render();
     };
     bar.appendChild(btn);
@@ -836,7 +837,7 @@ function renderParty(){
     row.className = `member ${member.role === selfRole ? 'me' : ''}`;
     row.onclick = () => {
       selfRole = member.role;
-      localStorage.setItem('p5_threestars_self_role', selfRole);
+      localStorage.setItem(SELF_ROLE_KEY, selfRole);
       render();
     };
     row.innerHTML = buildMemberRowHtml(member);
