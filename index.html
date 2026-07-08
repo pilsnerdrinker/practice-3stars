@@ -1,0 +1,1806 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>P5 スリースターズ練習</title>
+<style>
+:root{
+  --bg:#151820;--panel:#202632;--panel2:#171d27;--border:#46505f;
+  --text:#f1eadf;--muted:#b9ad9e;--accent:#45b49f;
+  --good:#3dd68c;--bad:#f75f6e;--warn:#f7c144;
+  --ice:#75d7ff;--fire:#ff5a4e;--bolt:#d8c85a;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{min-height:100vh;background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Hiragino Sans","Yu Gothic","Meiryo",sans-serif;font-size:14px;padding:14px 0 22px}
+button{border:1px solid var(--border);border-radius:8px;background:var(--panel);color:var(--text);font-weight:800;cursor:pointer;padding:8px 12px}
+button:hover{border-color:var(--accent)}
+button.primary{background:#2c8d7d;border-color:#55c8b4;color:#fff}
+button.active{background:#2c8d7d;border-color:#55c8b4;color:#fff;box-shadow:0 0 0 2px rgba(69,180,159,.18)}
+.app{width:min(1480px,calc(100% - 20px));margin:0 auto}
+.page-head{display:flex;align-items:flex-end;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:10px}
+h1{font-size:clamp(24px,3.5vw,34px);line-height:1.08;font-weight:900;letter-spacing:0}
+.head-links{display:flex;gap:8px;flex-wrap:wrap}
+.pill-link{display:inline-flex;align-items:center;min-height:34px;padding:7px 11px;border:1px solid var(--border);border-radius:8px;background:var(--panel2);color:#fff;text-decoration:none;font-weight:800;font-size:13px}
+.toolbar{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;background:var(--panel);border:1px solid var(--border);border-radius:8px 8px 0 0;padding:10px}
+.mode-tabs,.rolebar,.actions{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.label{color:var(--muted);font-size:12px;font-weight:900}
+.checkline{display:inline-flex;align-items:center;gap:6px;color:var(--text);font-size:12px;font-weight:900;border:1px solid var(--border);border-radius:8px;background:var(--panel2);padding:8px 10px}
+.checkline input{accent-color:var(--accent)}
+.main{display:grid;grid-template-columns:280px minmax(0,1fr) 280px;gap:12px;background:var(--panel);border:1px solid var(--border);border-top:0;border-radius:0 0 8px 8px;padding:12px}
+.arena-panel{min-width:0;display:grid;grid-template-columns:minmax(0,1fr);gap:12px}
+.arena-wrap{position:relative;min-width:0}
+svg{display:block;width:100%;height:auto;aspect-ratio:1/1;background:#111722;border:1px solid var(--border);border-radius:8px;touch-action:manipulation;user-select:none}
+svg text{pointer-events:none;user-select:none}
+.tower{cursor:pointer}
+.tower circle.base{stroke-width:1.2;transition:filter .12s,stroke-width .12s,opacity .12s}
+.tower.ice circle.base{fill:rgba(117,215,255,.22);stroke:var(--ice)}
+.tower.fire circle.base{fill:rgba(255,72,64,.24);stroke:var(--fire)}
+.tower.bolt circle.base{fill:rgba(216,200,90,.22);stroke:var(--bolt)}
+.tower:not(.lit) circle.base{opacity:.56}
+.tower.lit circle.base{filter:drop-shadow(0 0 5px rgba(255,255,255,.65));stroke-width:1.9;opacity:1}
+.tower.selected circle.base{stroke:#fff;stroke-width:2.8}
+.tower.correct circle.base{filter:drop-shadow(0 0 4px rgba(61,214,140,.45))}
+.tower.wrong circle.base{stroke:var(--bad);stroke-width:3.2;filter:drop-shadow(0 0 6px rgba(247,95,110,.85))}
+.answer-ring{fill:none;stroke-width:.95;pointer-events:none}
+.answer-ring.correct-ring{stroke:var(--good);stroke-dasharray:2 1.4;filter:drop-shadow(0 0 4px rgba(61,214,140,.75))}
+.answer-ring.wrong-ring{stroke:var(--bad);stroke-dasharray:1.8 1.2;filter:drop-shadow(0 0 4px rgba(247,95,110,.75))}
+.tower .icon{font-size:5.7px;font-weight:900;text-anchor:middle;dominant-baseline:middle;fill:#fff;paint-order:stroke;stroke:#000;stroke-width:.6}
+.tower .num{font-size:3.7px;font-weight:900;text-anchor:middle;dominant-baseline:middle;fill:#f1eadf}
+.tower .glow{fill:none;stroke:#fff;stroke-width:.8;opacity:0}
+.tower.lit .glow{opacity:.75;stroke-dasharray:2 1.4;animation:pulse 1.15s ease-in-out infinite}
+.practice-mode .tower .icon,.practice-mode .tower .num,.practice-mode .tower .glow{display:none}
+@keyframes pulse{0%,100%{opacity:.35;transform:scale(1)}50%{opacity:.95;transform:scale(1.05)}}
+.marker{font-size:4px;font-weight:900;text-anchor:middle;dominant-baseline:middle;fill:#dce5ff;paint-order:stroke;stroke:#000;stroke-width:.5}
+.target-circle{fill:transparent;stroke:rgba(255,130,185,.82);stroke-width:.8}
+.target-circle.wind{fill:rgba(62,126,48,.56);stroke:rgba(132,204,86,.9)}
+.target-circle.earth{fill:rgba(126,104,26,.52);stroke:rgba(234,205,88,.88)}
+.practice-mode .target-circle.wind{fill:rgba(62,126,48,.56);stroke:rgba(132,204,86,.9)}
+.practice-mode .target-circle.earth{fill:rgba(134,100,28,.56);stroke:rgba(202,153,49,.88)}
+.aoe{pointer-events:none}
+.aoe.donut{fill:rgba(62,126,48,.34);stroke:rgba(132,204,86,.86);stroke-width:.65;fill-rule:evenodd}
+.aoe.circle{fill:rgba(221,181,54,.34);stroke:rgba(245,215,98,.88);stroke-width:.75}
+.practice-mode .aoe.donut{fill:rgba(62,126,48,.34);stroke:rgba(132,204,86,.86)}
+.practice-mode .aoe.circle{fill:rgba(134,100,28,.34);stroke:rgba(202,153,49,.88)}
+.click-marker{fill:#55e08c;stroke:#fff;stroke-width:.65;pointer-events:none}
+.player-marker{fill:#55e08c;stroke:#fff;stroke-width:.7;pointer-events:none;filter:drop-shadow(0 0 3px rgba(85,224,140,.8))}
+.player-marker.wrong{fill:var(--bad);filter:drop-shadow(0 0 3px rgba(247,95,110,.85))}
+.safe-note{position:absolute;left:10px;top:10px;padding:7px 9px;border:1px solid var(--border);border-radius:8px;background:rgba(23,29,39,.9);font-size:13px;font-weight:900;color:#fff}
+.safe-note.wind{border-color:#84cc56;color:#d8ffb8}
+.safe-note.earth{border-color:#e0b76b;color:#ffdda1}
+.cast-note{display:none;position:absolute;left:50%;top:34%;transform:translate(-50%,-50%);z-index:4;padding:7px 12px;border:1px solid rgba(255,255,255,.36);border-radius:8px;background:rgba(17,23,34,.82);color:#fff;font-size:15px;font-weight:900;letter-spacing:.03em;text-shadow:0 2px 6px rgba(0,0,0,.7);pointer-events:none;white-space:nowrap}
+.cast-note.show{display:block}
+.cast-note.wind{border-color:#84cc56;color:#d8ffb8}
+.cast-note.earth{border-color:#e0b76b;color:#ffdda1}
+.slide-nav{position:absolute;right:10px;top:10px;display:flex;align-items:center;gap:5px;z-index:3;background:rgba(23,29,39,.92);border:1px solid var(--border);border-radius:8px;padding:4px}
+.slide-nav button{min-width:30px;min-height:28px;padding:2px 7px;border-radius:6px}
+.slide-nav span{min-width:46px;text-align:center;font-size:12px;font-weight:900;color:#f1eadf}
+.timer-wrap{display:none;position:static;margin-top:8px;border:1px solid var(--border);border-radius:8px;background:rgba(23,29,39,.92);padding:7px 9px}
+.practice-mode .timer-wrap{display:block}
+.timer-top{display:grid;grid-template-columns:minmax(0,1fr);align-items:center;gap:8px;margin-bottom:6px}
+.timer-meta{font-size:12px;font-weight:900;color:#f1eadf}
+.timer-track{height:8px;border-radius:999px;background:rgba(255,255,255,.12);overflow:hidden}
+.timer-fill{height:100%;width:100%;border-radius:999px;background:linear-gradient(90deg,#55c8b4,#f7c144);transform-origin:left center;transform:scaleX(1)}
+.timer-btn{min-height:28px;padding:3px 9px;border-radius:7px;font-size:11px}
+.practice-controls{display:none;gap:6px;flex-wrap:wrap;margin-top:8px}
+.practice-mode .practice-controls{display:flex}
+.practice-controls button{min-height:30px;padding:5px 9px;border-radius:7px;font-size:11px}
+.practice-overlay{display:none;position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);z-index:6;min-width:190px;max-width:min(88%,360px);padding:14px;border:1px solid var(--border);border-radius:8px;background:rgba(17,23,34,.94);box-shadow:0 12px 34px rgba(0,0,0,.42);text-align:center}
+.practice-overlay.show{display:block}
+.practice-count{font-size:74px;line-height:1;font-weight:900;color:#fff;text-shadow:0 0 26px rgba(85,200,180,.75)}
+.practice-result-title{font-size:22px;font-weight:900;margin-bottom:8px}
+.practice-result-title.ok{color:var(--good)}
+.practice-result-title.ng{color:var(--bad)}
+.practice-overlay-actions{display:flex;justify-content:center;gap:8px;flex-wrap:wrap;margin-top:12px}
+.answer-flash{display:none;position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);z-index:8;min-width:190px;padding:12px 16px;border:2px solid var(--border);border-radius:8px;background:rgba(17,23,34,.94);font-size:34px;line-height:1.2;font-weight:900;text-align:center;text-shadow:0 2px 6px rgba(0,0,0,.65);box-shadow:0 10px 30px rgba(0,0,0,.38)}
+.answer-flash.show{display:block}
+.answer-flash.ok{border-color:var(--good);color:#b6ffd6}
+.answer-flash.ng{border-color:var(--bad);color:#ffd1d6}
+.answer-flash small{display:block;margin-top:5px;font-size:13px;color:var(--text)}
+.answer-text-bg{fill:rgba(17,23,34,.94);stroke-width:.55;pointer-events:none}
+.answer-text-bg.ok{stroke:var(--good)}
+.answer-text-bg.ng{stroke:var(--bad)}
+.answer-text-main{font-size:8px;font-weight:900;text-anchor:middle;dominant-baseline:middle;paint-order:stroke;stroke:#000;stroke-width:.55;pointer-events:none}
+.answer-text-main.ok{fill:#b6ffd6}
+.answer-text-main.ng{fill:#ffd1d6}
+.answer-text-sub{font-size:3.1px;font-weight:900;text-anchor:middle;dominant-baseline:middle;fill:#f1eadf;paint-order:stroke;stroke:#000;stroke-width:.35;pointer-events:none}
+.rounds{display:grid;gap:8px}
+.round-card{border:1px solid var(--border);border-radius:8px;background:var(--panel2);padding:10px}
+.round-card.active{border-color:#55c8b4;box-shadow:0 0 0 2px rgba(69,180,159,.18)}
+.round-title{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:7px;font-weight:900}
+.mini-towers{display:grid;grid-template-columns:repeat(3,1fr);gap:5px}
+.mini{height:24px;border-radius:999px;border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:900;background:#101721;color:var(--muted)}
+.mini.on.ice{border-color:var(--ice);color:#d6f6ff;background:rgba(117,215,255,.18)}
+.mini.on.fire{border-color:var(--fire);color:#ffe1d4;background:rgba(255,138,88,.18)}
+.mini.on.bolt{border-color:var(--bolt);color:#fff7ad;background:rgba(216,200,90,.18)}
+.side,.right-side{display:grid;gap:12px;align-content:start}
+.panel{background:var(--panel2);border:1px solid var(--border);border-radius:8px;padding:12px}
+.panel-title{font-size:12px;color:var(--muted);font-weight:900;letter-spacing:.04em;margin-bottom:8px}
+.party{display:grid;gap:6px}
+.member{display:grid;grid-template-columns:42px minmax(0,1fr);align-items:center;gap:7px;border:1px solid #303a48;border-radius:8px;padding:7px 8px;background:#121924;cursor:pointer}
+.member:hover{border-color:var(--accent)}
+.member.me{border-color:#55c8b4;background:rgba(69,180,159,.12)}
+.member .rolecell{display:flex;flex-direction:column;align-items:flex-start;justify-content:center;gap:3px;min-height:46px}
+.member .role{font-weight:900;line-height:1}
+.you-dot{display:inline-flex;align-items:center;justify-content:center;width:30px;height:16px;border-radius:999px;background:#f4cf5a;color:#161a21;border:1px solid #f9df88;font-size:9px;font-weight:900;line-height:1}
+.badge{display:inline-flex;align-items:center;justify-content:center;min-width:64px;border-radius:999px;border:1px solid var(--border);padding:3px 8px;font-size:12px;font-weight:900}
+.badge.ice{border-color:var(--ice);color:#d6f6ff;background:rgba(117,215,255,.15)}
+.badge.fire{border-color:var(--fire);color:#ffe1d4;background:rgba(255,138,88,.15)}
+.badge.bolt{border-color:var(--bolt);color:#fff7ad;background:rgba(216,200,90,.15)}
+.badge.none{color:#e9e2d8;background:rgba(255,255,255,.06)}
+.badge.icon-badge{min-width:50px;width:50px;height:46px;padding:0;border-radius:8px;background:rgba(0,0,0,.22);position:relative}
+.debuff-icon{display:block;width:42px;height:46px;object-fit:contain;filter:drop-shadow(0 0 1px rgba(0,0,0,.75))}
+.debuff-time{position:absolute;right:2px;bottom:1px;min-width:16px;border-radius:999px;background:rgba(0,0,0,.72);color:#fff;font-size:9px;line-height:1;padding:2px 3px;text-align:center}
+.empty-badge{min-width:44px;height:34px}
+.debuffs{display:flex;justify-content:flex-end;align-items:center;gap:4px;flex-wrap:nowrap;min-width:0}
+.info{line-height:1.65;color:#d8cdbf}
+.result{font-weight:900;font-size:16px;min-height:28px}
+.result.ok{color:var(--good)}
+.result.ng{color:var(--bad)}
+.log{height:150px;overflow-y:auto;display:flex;flex-direction:column-reverse;gap:3px;font-size:12px;line-height:1.45;color:var(--muted)}
+.log div{padding:2px 4px;border-radius:4px}
+.log .ok{color:#b6ffd6;background:rgba(61,214,140,.08)}
+.log .ng{color:#ffd1d6;background:rgba(247,95,110,.08)}
+.log .sys{color:#84d8ca}
+.copyright{width:min(1480px,calc(100% - 20px));margin:12px auto 0;color:var(--muted);font-size:11px;line-height:1.5;text-align:right}
+.privacy-note{width:min(1480px,calc(100% - 20px));margin:12px auto 0;border:1px solid var(--border);border-radius:8px;background:var(--panel2);color:var(--muted);font-size:11px;line-height:1.6;padding:10px 12px;display:flex;align-items:flex-start;justify-content:space-between;gap:10px}
+.privacy-note p{margin:0;flex:1}
+.privacy-note button{min-width:118px;min-height:30px;padding:5px 9px;border-radius:7px;font-size:11px;white-space:nowrap}
+.privacy-note button.off{background:#2a3038;border-color:#56606c;color:#c9d1dc}
+.sticky-self{display:none;position:fixed;left:8px;right:8px;top:6px;z-index:30;border:1px solid #55c8b4;border-radius:8px;background:rgba(18,25,36,.97);box-shadow:0 8px 24px rgba(0,0,0,.38);padding:6px}
+.sticky-self.show{display:block}
+@media (max-width:1050px){
+  .main{grid-template-columns:1fr}
+  .arena-panel{grid-template-columns:1fr}
+}
+@media (max-width:680px){
+  body{padding-top:8px}
+  .app{width:min(100% - 10px,1320px)}
+  .toolbar{align-items:flex-start}
+  .main{padding:8px}
+  .rolebar button{padding:7px 9px}
+  .member{grid-template-columns:38px minmax(0,1fr)}
+  .debuffs{flex-wrap:wrap}
+}
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="page-head">
+    <h1>P5 スリースターズ練習</h1>
+    <div class="head-links">
+      <a class="pill-link" href="https://github.com/pilsnerdrinker/practice-3stars#readme" target="_blank" rel="noopener">使い方・仕様（README）を見る</a>
+      <a class="pill-link" href="https://pilsnerdrinker.github.io/raidshelf/" target="_blank" rel="noopener">他の練習ページ：raidshelf</a>
+    </div>
+  </div>
+
+  <div class="toolbar">
+    <div class="mode-tabs">
+      <button type="button" id="modePositionBtn" onclick="setMode('position')">位置確認</button>
+      <button type="button" id="modePracticeBtn" onclick="setMode('practice')">実践練習</button>
+    </div>
+    <div class="rolebar" id="roleBar">
+      <span class="label">自分ロール</span>
+    </div>
+    <div class="actions">
+      <button class="primary" type="button" onclick="newProblem()">新しい問題</button>
+      <button type="button" onclick="revealAnswer()">正解表示</button>
+      <label class="checkline"><input type="checkbox" id="detailDebuffCheck" onchange="toggleDetailDebuff(this.checked)">詳細表示</label>
+      <label class="checkline"><input type="checkbox" id="oneByOneCheck" onchange="toggleOneByOne(this.checked)">一問ごと</label>
+      <button type="button" id="markerOrderBtn" onclick="toggleMarkerOrder()">2341</button>
+    </div>
+  </div>
+
+  <div class="main">
+    <div class="side">
+      <div class="panel">
+        <div class="panel-title">パーティーリスト</div>
+        <div class="party" id="partyList"></div>
+      </div>
+    </div>
+
+    <div class="arena-panel">
+      <div class="arena-wrap">
+        <svg id="field" viewBox="0 0 100 100" aria-label="スリースターズ練習フィールド" onclick="handleFieldClick(event)">
+          <circle cx="50" cy="50" r="47" fill="#151d2e" stroke="#33435f" stroke-width=".8"/>
+          <circle id="targetCircle" class="target-circle" cx="50" cy="50" r="15.7"/>
+          <text class="marker" x="50" y="8">A</text>
+          <text class="marker" id="numMarker0" x="84" y="18">2</text>
+          <text class="marker" x="92" y="50">B</text>
+          <text class="marker" id="numMarker1" x="84" y="82">3</text>
+          <text class="marker" x="50" y="94">C</text>
+          <text class="marker" id="numMarker2" x="16" y="82">4</text>
+          <text class="marker" x="8" y="50">D</text>
+          <text class="marker" id="numMarker3" x="16" y="18">1</text>
+          <g id="aoeLayer"></g>
+          <g id="towerLayer"></g>
+          <g id="clickLayer"></g>
+          <g id="playerLayer"></g>
+          <g id="answerTextLayer"></g>
+        </svg>
+        <div class="safe-note" id="safeNote">カタストロフィなし</div>
+        <div class="cast-note" id="castNote">2択のカタストロフィ詠唱中</div>
+        <div class="slide-nav">
+          <button type="button" onclick="slidePrev()">＜</button>
+          <span id="slideNo">1/3</span>
+          <button type="button" onclick="slideNext()">＞</button>
+        </div>
+        <div class="practice-overlay" id="practiceStartOverlay">
+          <div class="practice-result-title">実践練習</div>
+          <button type="button" class="primary" onclick="beginPracticeCountdown()">スタート</button>
+        </div>
+        <div class="practice-overlay" id="practiceCountOverlay">
+          <div class="practice-count" id="practiceCountText">3</div>
+        </div>
+        <div class="practice-overlay" id="practiceResultOverlay">
+          <div class="practice-result-title" id="practiceResultTitle">結果</div>
+          <div class="info" id="practiceResultText"></div>
+          <div class="practice-overlay-actions">
+            <button type="button" onclick="restartPracticeProblem()">もう一度</button>
+            <button type="button" class="primary" onclick="loadNextProblem()">次の問題</button>
+          </div>
+        </div>
+      </div>
+      <div class="timer-wrap" id="practiceTimer">
+        <div class="timer-top">
+          <div class="timer-meta"><span id="timerLabel">1回目 発動まで</span></div>
+        </div>
+        <div class="timer-track"><div class="timer-fill" id="timerFill"></div></div>
+        <div class="practice-controls">
+          <button type="button" id="timerMainBtn2" onclick="practiceStartPauseResume()">スタート</button>
+          <button type="button" onclick="loadPreviousProblem()">前の問題</button>
+          <button type="button" onclick="restartPracticeProblem()">もう一度</button>
+          <button type="button" onclick="loadNextProblem()">次の問題</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="right-side">
+      <div class="panel">
+        <div class="panel-title">今の判断</div>
+        <div class="info" id="judgeText"></div>
+        <div class="result" id="resultText"></div>
+      </div>
+      <div class="panel">
+        <div class="panel-title">成績</div>
+        <div class="info" id="scoreText"></div>
+      </div>
+      <div class="panel">
+        <div class="panel-title">ログ</div>
+        <div class="log" id="logBox"></div>
+      </div>
+    </div>
+  </div>
+</div>
+<div class="privacy-note" id="privacyNote">
+  <p>この練習アプリでは、アプリ改善のため、練習ログを送信する場合があります。送信されるのは、アプリ名、モード、問題種別、正誤、回答時間など、練習内容に関する情報のみです。同じブラウザ内での練習傾向を見るため、localStorageにランダムなブラウザIDを保存します。練習ログにはIPアドレスを含めず、アプリ側でIPアドレスを保存しません。</p>
+  <button type="button" id="answerLogToggleBtn" onclick="toggleAnswerLogEnabled()">ログ送信：ON</button>
+</div>
+<div class="copyright">© SQUARE ENIX</div>
+<div class="sticky-self" id="stickySelf"></div>
+
+<script>
+'use strict';
+
+/* D1正誤ログ送信：Cloudflare Worker + D1へ1問1行で匿名送信 */
+const ANSWER_LOGGER_CONFIG = {
+  endpoint: 'https://practice-answer-log-api.hamlight.workers.dev/v1/answer',
+  appId: 'practice-3stars',
+  appVersion: 'p5_threestars_practice_v29_d1log_toggle'
+};
+
+const AnswerLogger = (() => {
+  const LEARNER_KEY = 'practice_answer_logger_learner_id_v1';
+  const QUEUE_KEY = 'practice_answer_logger_unsent_queue_v1';
+  const ENABLED_KEY = 'practice_answer_logger_enabled_v1';
+  const MAX_QUEUE = 80;
+  const sessionId = makeId('session');
+
+  function isEnabled(){
+    try{
+      return localStorage.getItem(ENABLED_KEY) !== 'off';
+    }catch(_){
+      return true;
+    }
+  }
+
+  function setEnabled(enabled){
+    try{
+      localStorage.setItem(ENABLED_KEY, enabled ? 'on' : 'off');
+      if(!enabled) saveQueue([]);
+    }catch(_){}
+  }
+
+  function makeId(prefix){
+    if(window.crypto && typeof window.crypto.randomUUID === 'function'){
+      return `${prefix}_${window.crypto.randomUUID()}`;
+    }
+    return `${prefix}_${Date.now()}_${Math.random().toString(36).slice(2)}`;
+  }
+
+  function getLearnerId(){
+    try{
+      let id = localStorage.getItem(LEARNER_KEY);
+      if(!id){
+        id = makeId('learner');
+        localStorage.setItem(LEARNER_KEY, id);
+      }
+      return id;
+    }catch(_){
+      return makeId('learner_tmp');
+    }
+  }
+
+  function loadQueue(){
+    try{
+      return JSON.parse(localStorage.getItem(QUEUE_KEY)) || [];
+    }catch(_){
+      return [];
+    }
+  }
+
+  function saveQueue(queue){
+    try{
+      localStorage.setItem(QUEUE_KEY, JSON.stringify(queue.slice(-MAX_QUEUE)));
+    }catch(_){}
+  }
+
+  function enqueue(payload){
+    if(!isEnabled()) return;
+    const queue = loadQueue();
+    queue.push(payload);
+    saveQueue(queue);
+  }
+
+  async function postPayload(payload){
+    const res = await fetch(ANSWER_LOGGER_CONFIG.endpoint, {
+      method: 'POST',
+      mode: 'cors',
+      keepalive: true,
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify(payload)
+    });
+    if(!res.ok) throw new Error(`answer log failed: ${res.status}`);
+    return res;
+  }
+
+  async function flush(){
+    if(!isEnabled()){
+      saveQueue([]);
+      return;
+    }
+    const queue = loadQueue();
+    if(!queue.length) return;
+    const rest = [];
+    for(const payload of queue){
+      try{
+        await postPayload(payload);
+      }catch(_){
+        rest.push(payload);
+      }
+    }
+    saveQueue(rest);
+  }
+
+  function record(data){
+    if(!isEnabled()) return;
+    const payload = {
+      schemaVersion: 1,
+      eventId: makeId('event'),
+      appId: ANSWER_LOGGER_CONFIG.appId,
+      appVersion: ANSWER_LOGGER_CONFIG.appVersion,
+      learnerId: getLearnerId(),
+      sessionId,
+      quizRunId: data.quizRunId || null,
+      questionId: data.questionId,
+      questionVersion: data.questionVersion || 'v1',
+      category: data.category || null,
+      difficulty: data.difficulty || null,
+      isCorrect: !!data.isCorrect,
+      elapsedMs: Number.isFinite(data.elapsedMs) ? Math.max(0, Math.round(data.elapsedMs)) : null,
+      attemptNo: data.attemptNo || 1,
+      answeredAt: new Date().toISOString()
+    };
+
+    postPayload(payload).catch(() => enqueue(payload));
+  }
+
+  flush();
+  window.addEventListener('online', flush);
+
+  return {
+    record,
+    flush,
+    getLearnerId,
+    isEnabled,
+    setEnabled
+  };
+})();
+
+function updateAnswerLogToggleButton(){
+  const btn = document.getElementById('answerLogToggleBtn');
+  if(!btn) return;
+  const enabled = AnswerLogger.isEnabled();
+  btn.textContent = enabled ? 'ログ送信：ON' : 'ログ送信：OFF';
+  btn.classList.toggle('off', !enabled);
+  btn.setAttribute('aria-pressed', enabled ? 'true' : 'false');
+}
+
+function toggleAnswerLogEnabled(){
+  const nextEnabled = !AnswerLogger.isEnabled();
+  AnswerLogger.setEnabled(nextEnabled);
+  updateAnswerLogToggleButton();
+  if(nextEnabled){
+    AnswerLogger.flush();
+    log('匿名練習ログ送信：ON', 'sys');
+  }else{
+    log('匿名練習ログ送信：OFF', 'sys');
+  }
+}
+
+function makeProblemId(){
+  if(window.crypto && typeof window.crypto.randomUUID === 'function'){
+    return `p5ts_${window.crypto.randomUUID()}`;
+  }
+  return `p5ts_${Date.now()}_${Math.random().toString(36).slice(2)}`;
+}
+
+
+const ROLES = ['MT','ST','H1','H2','D1','D2','D3','D4'];
+const ELEMENTS = ['ice','fire','bolt'];
+const ELEMENT_LABEL = {ice:'氷', fire:'炎', bolt:'雷', none:'無職'};
+const ELEMENT_ICON = {ice:'氷', fire:'炎', bolt:'雷'};
+const ELEMENT_CLASS = {ice:'ice', fire:'fire', bolt:'bolt'};
+const DEBUFF_DETAIL_LABEL = {ice:'氷耐性低下', fire:'炎耐性低下', bolt:'雷耐性低下', none:'無職'};
+const DEBUFF_ORDER = ['bolt','fire','ice'];
+const DEBUFF_ICON = {
+  ice:'data:image/png;base64,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',
+  bolt:'data:image/png;base64,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',
+  fire:'data:image/png;base64,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'
+};
+const SCORE_KEY = 'p5_threestars_practice_v2_score';
+const ANSWER_DELAY_MS = 650;
+const NEXT_PROBLEM_DELAY_MS = 1200;
+const PRACTICE_QUESTION_MS = [10000, 6000, 5000];
+const PRACTICE_REVEAL_MS = 1000;
+const PRACTICE_RESULT_MS = 3000;
+const PRACTICE_HIT_TIMES_MS = [10000, 17000, 23000];
+const FIRST_CATASTROPHE_APPEAR_MS = 4000;
+const INITIAL_DEBUFF_MS = 20000;
+const ADDED_DEBUFF_MS = 20000;
+const PLAYER_SPEED = 32;
+const MODE_KEY = 'p5_threestars_mode_v14';
+const MARKER_ORDER_KEY = 'p5_threestars_marker_order_v16';
+
+let selfRole = localStorage.getItem('p5_threestars_self_role') || 'D1';
+let mode = localStorage.getItem(MODE_KEY) || 'practice';
+let markerOrder = localStorage.getItem(MARKER_ORDER_KEY) || '2341';
+if(markerOrder !== '2341' && markerOrder !== '1234') markerOrder = '2341';
+let problem = null;
+let problemHistory = [];
+let historyIndex = -1;
+let currentRound = 0;
+let selectedTower = null;
+let selectedPoint = null;
+let revealed = false;
+let score = loadScore();
+let oneByOne = false;
+let detailDebuff = false;
+let autoTimer = null;
+let problemResults = [];
+let practiceRunning = false;
+let practicePhase = 'idle';
+let practicePhaseStartedAt = 0;
+let practicePhaseDuration = 0;
+let practiceStartedAt = 0;
+let practiceRaf = null;
+let inputRaf = null;
+let lastFrameAt = 0;
+let lastDebuffTick = null;
+let lastCastVisible = null;
+let playerPoint = {x:50, y:50};
+let practicePaused = false;
+let practicePausedRemaining = 0;
+let practicePausedAt = 0;
+let practiceCountRemaining = 3;
+let answerStartedAt = performance.now();
+const keyState = new Set();
+
+function shuffle(arr){
+  const a = [...arr];
+  for(let i=a.length-1;i>0;i--){
+    const j = Math.floor(Math.random()*(i+1));
+    [a[i],a[j]] = [a[j],a[i]];
+  }
+  return a;
+}
+
+function pick(arr, count){
+  return shuffle(arr).slice(0,count);
+}
+
+function loadScore(){
+  try{
+    return JSON.parse(localStorage.getItem(SCORE_KEY)) || {ok:0,ng:0};
+  }catch(_){
+    return {ok:0,ng:0};
+  }
+}
+
+function saveScore(){
+  localStorage.setItem(SCORE_KEY, JSON.stringify(score));
+}
+
+function markAnswerStart(){
+  answerStartedAt = performance.now();
+}
+
+function getAnswerElapsedMs(){
+  if(mode === 'practice' && practicePhase === 'question' && practicePhaseStartedAt){
+    return performance.now() - practicePhaseStartedAt;
+  }
+  return performance.now() - answerStartedAt;
+}
+
+function getQuestionVersionForLog(round, me){
+  return [
+    `mode:${mode}`,
+    `marker:${markerOrder}`,
+    `role:${selfRole}`,
+    `debuff:${me.debuff}`,
+    `double:${round.doubleElement}`,
+    `catastrophe:${round.catastrophe || 'none'}`
+  ].join('|');
+}
+
+function recordAnswerEvent(result){
+  if(!problem || !result) return;
+  try{
+    const me = getMe();
+    const round = problem.rounds[currentRound];
+    AnswerLogger.record({
+      quizRunId: problem.problemId,
+      questionId: `${problem.problemId}_round_${currentRound + 1}`,
+      questionVersion: getQuestionVersionForLog(round, me),
+      category: `${mode}_round_${currentRound + 1}`,
+      difficulty: mode,
+      isCorrect: !!result.ok,
+      elapsedMs: getAnswerElapsedMs(),
+      attemptNo: 1
+    });
+  }catch(error){
+    console.warn('answer log skipped', error);
+  }
+}
+
+function makeProblem(){
+  const order = shuffle(ELEMENTS);
+  const towers = [];
+  for(let group=0; group<3; group++){
+    for(let inner=0; inner<3; inner++){
+      const index = group*3 + inner;
+      const angle = -70 + index*40;
+      const rad = angle * Math.PI / 180;
+      towers.push({
+        index,
+        element: order[group],
+        x: 50 + Math.cos(rad)*34,
+        y: 50 + Math.sin(rad)*34
+      });
+    }
+  }
+
+  const rounds = [];
+  let previousLit = [];
+  for(let roundIndex=0; roundIndex<3; roundIndex++){
+    const previousSet = new Set(previousLit);
+    const availableByElement = {};
+    for(const element of ELEMENTS){
+      availableByElement[element] = towers
+        .filter(t => t.element === element && !previousSet.has(t.index))
+        .map(t => t.index);
+    }
+    const doubleCandidates = ELEMENTS.filter(element => availableByElement[element].length >= 2);
+    const doubleElement = doubleCandidates[Math.floor(Math.random()*doubleCandidates.length)];
+    const lit = [];
+    for(const element of ELEMENTS){
+      const positions = availableByElement[element];
+      lit.push(...pick(positions, element === doubleElement ? 2 : 1));
+    }
+    const round = {
+      lit: lit.sort((a,b)=>a-b),
+      doubleElement,
+      catastrophe: roundIndex === 1 ? null : (Math.random() < .5 ? 'wind' : 'earth')
+    };
+    rounds.push(round);
+    previousLit = round.lit;
+  }
+
+  const debuffs = shuffle(['ice','ice','fire','fire','bolt','bolt','none','none']);
+  const party = ROLES.map((role, i) => ({role, debuff: debuffs[i]}));
+  return {problemId: makeProblemId(), towers, rounds, party};
+}
+
+function renderRoleButtons(){
+  const bar = document.getElementById('roleBar');
+  bar.innerHTML = '<span class="label">自分ロール</span>';
+  for(const role of ROLES){
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.textContent = role;
+    btn.className = role === selfRole ? 'active' : '';
+    btn.onclick = () => {
+      selfRole = role;
+      localStorage.setItem('p5_threestars_self_role', selfRole);
+      render();
+    };
+    bar.appendChild(btn);
+  }
+}
+
+function towerClass(element){
+  return ELEMENT_CLASS[element] || '';
+}
+
+function renderMarkerOrder(){
+  const labels = markerOrder === '1234' ? ['1','2','3','4'] : ['2','3','4','1'];
+  labels.forEach((label, index) => {
+    const marker = document.getElementById(`numMarker${index}`);
+    if(marker) marker.textContent = label;
+  });
+}
+
+function renderField(){
+  const layer = document.getElementById('towerLayer');
+  const aoeLayer = document.getElementById('aoeLayer');
+  const clickLayer = document.getElementById('clickLayer');
+  const playerLayer = document.getElementById('playerLayer');
+  const answerTextLayer = document.getElementById('answerTextLayer');
+  const round = problem.rounds[currentRound];
+  const correct = getCorrectTower();
+  renderMarkerOrder();
+  renderTargetCircle(round);
+  aoeLayer.innerHTML = '';
+  clickLayer.innerHTML = '';
+  playerLayer.innerHTML = '';
+  answerTextLayer.innerHTML = '';
+  layer.innerHTML = '';
+
+  if(revealed && round.catastrophe){
+    const aoe = document.createElementNS('http://www.w3.org/2000/svg', round.catastrophe === 'wind' ? 'path' : 'circle');
+    if(round.catastrophe === 'wind'){
+      aoe.setAttribute('class', 'aoe donut');
+      aoe.setAttribute('d', 'M50 3a47 47 0 1 0 0 94a47 47 0 1 0 0-94 M50 16a34 34 0 1 1 0 68a34 34 0 1 1 0-68');
+    }else{
+      aoe.setAttribute('class', 'aoe circle');
+      aoe.setAttribute('cx', '50');
+      aoe.setAttribute('cy', '50');
+      aoe.setAttribute('r', '34');
+    }
+    aoeLayer.appendChild(aoe);
+  }
+
+  for(const tower of problem.towers){
+    const lit = round.lit.includes(tower.index);
+    const selected = selectedTower === tower.index;
+    const placementOk = isSelectedPlacementSafe();
+    const isCorrect = revealed && tower.index === correct;
+    const isWrong = revealed && selected && selectedTower === tower.index && (selectedTower !== correct || !placementOk);
+    const correctRing = isCorrect ? '<circle class="answer-ring correct-ring" r="9.8"></circle>' : '';
+    const wrongRing = isWrong ? '<circle class="answer-ring wrong-ring" r="11.2"></circle>' : '';
+    const g = document.createElementNS('http://www.w3.org/2000/svg','g');
+    g.setAttribute('class', `tower ${towerClass(tower.element)} ${lit ? 'lit' : ''} ${selected ? 'selected' : ''} ${isCorrect ? 'correct' : ''} ${isWrong ? 'wrong' : ''}`);
+    g.setAttribute('transform', `translate(${tower.x} ${tower.y})`);
+    g.onclick = event => {
+      event.stopPropagation();
+      chooseTower(tower.index, event);
+    };
+    g.innerHTML = `
+      <circle class="glow" r="9.6"></circle>
+      <circle class="base" r="7.7"></circle>
+      <text class="icon" y="-0.7">${ELEMENT_ICON[tower.element]}</text>
+      <text class="num" y="5.1">${tower.index + 1}</text>
+      ${correctRing}
+      ${wrongRing}
+    `;
+    layer.appendChild(g);
+  }
+
+  if(mode === 'position' && selectedPoint){
+    const dot = document.createElementNS('http://www.w3.org/2000/svg','circle');
+    dot.setAttribute('class', 'click-marker');
+    dot.setAttribute('cx', selectedPoint.x.toFixed(2));
+    dot.setAttribute('cy', selectedPoint.y.toFixed(2));
+    dot.setAttribute('r', '2.25');
+    clickLayer.appendChild(dot);
+  }
+
+  if(mode === 'practice'){
+    const dot = document.createElementNS('http://www.w3.org/2000/svg','circle');
+    const result = problemResults[currentRound];
+    const isWrongReveal = revealed && practicePhase === 'reveal' && result && !result.ok;
+    dot.setAttribute('class', `player-marker ${isWrongReveal ? 'wrong' : ''}`);
+    dot.setAttribute('cx', playerPoint.x.toFixed(2));
+    dot.setAttribute('cy', playerPoint.y.toFixed(2));
+    dot.setAttribute('r', '2.25');
+    playerLayer.appendChild(dot);
+  }
+  renderSvgAnswerText(answerTextLayer);
+
+  const safeNote = document.getElementById('safeNote');
+  safeNote.className = 'safe-note';
+  if(mode === 'practice'){
+    safeNote.style.display = 'none';
+  }else if(round.catastrophe === 'wind'){
+    safeNote.style.display = '';
+    safeNote.classList.add('wind');
+    safeNote.textContent = `${currentRound + 1}回目：風カタストロフィ = 中安置`;
+  }else if(round.catastrophe === 'earth'){
+    safeNote.style.display = '';
+    safeNote.classList.add('earth');
+    safeNote.textContent = `${currentRound + 1}回目：土カタストロフィ = 外安置`;
+  }else{
+    safeNote.style.display = '';
+    safeNote.textContent = `${currentRound + 1}回目：カタストロフィなし`;
+  }
+  renderCastNote();
+}
+
+function shouldShowCatastrophePreview(){
+  if(mode !== 'practice') return true;
+  if(!(practicePhase === 'question' || practicePhase === 'reveal' || practicePhase === 'result')) return false;
+  if(currentRound === 0){
+    return getPracticeElapsedMs() >= FIRST_CATASTROPHE_APPEAR_MS;
+  }
+  return true;
+}
+
+function shouldShowCatastropheCast(){
+  const round = problem.rounds[currentRound];
+  return !!round.catastrophe && !revealed && shouldShowCatastrophePreview();
+}
+
+function renderTargetCircle(round){
+  const target = document.getElementById('targetCircle');
+  const catastropheClass = !revealed && round.catastrophe && shouldShowCatastrophePreview() ? round.catastrophe : '';
+  target.setAttribute('class', `target-circle ${catastropheClass}`);
+}
+
+function renderCastNote(){
+  const note = document.getElementById('castNote');
+  if(!note) return;
+  const round = problem.rounds[currentRound];
+  note.className = 'cast-note';
+  if(shouldShowCatastropheCast()){
+    note.classList.add('show', round.catastrophe);
+    note.textContent = '2択のカタストロフィ詠唱中';
+  }
+}
+
+function renderSvgAnswerText(layer){
+  if(!layer || mode !== 'practice' || !revealed || practicePhase !== 'reveal') return;
+  const result = problemResults[currentRound];
+  if(!result) return;
+  const status = result.ok ? 'ok' : 'ng';
+  const main = result.ok ? '正解' : '不正解';
+  const sub = result.ok ? `正解塔：塔${result.correct + 1}` : `${result.reason} / 正解塔：塔${result.correct + 1}`;
+  const bg = document.createElementNS('http://www.w3.org/2000/svg','rect');
+  bg.setAttribute('class', `answer-text-bg ${status}`);
+  bg.setAttribute('x', '28');
+  bg.setAttribute('y', '42');
+  bg.setAttribute('width', '44');
+  bg.setAttribute('height', '16');
+  bg.setAttribute('rx', '2.2');
+  layer.appendChild(bg);
+  const mainText = document.createElementNS('http://www.w3.org/2000/svg','text');
+  mainText.setAttribute('class', `answer-text-main ${status}`);
+  mainText.setAttribute('x', '50');
+  mainText.setAttribute('y', '48.2');
+  mainText.textContent = main;
+  layer.appendChild(mainText);
+  const subText = document.createElementNS('http://www.w3.org/2000/svg','text');
+  subText.setAttribute('class', 'answer-text-sub');
+  subText.setAttribute('x', '50');
+  subText.setAttribute('y', '54');
+  subText.textContent = sub;
+  layer.appendChild(subText);
+}
+
+function renderRoundCards(){
+  const root = document.getElementById('roundCards');
+  if(!root) return;
+  root.innerHTML = '';
+  problem.rounds.forEach((round, i) => {
+    const card = document.createElement('div');
+    card.className = `round-card ${i === currentRound ? 'active' : ''}`;
+    card.onclick = () => setRound(i);
+    const cat = round.catastrophe === 'wind' ? '風=中' : round.catastrophe === 'earth' ? '土=外' : 'なし';
+    card.innerHTML = `
+      <div class="round-title"><span>${i + 1}回目の塔</span><span>${cat}</span></div>
+      <div class="mini-towers">
+        ${ELEMENTS.map(element => {
+          const count = round.lit.filter(idx => problem.towers[idx].element === element).length;
+          return `<div class="mini ${count ? 'on ' + towerClass(element) : ''}">${ELEMENT_LABEL[element]}${count}</div>`;
+        }).join('')}
+      </div>
+    `;
+    root.appendChild(card);
+  });
+}
+
+function renderParty(){
+  const root = document.getElementById('partyList');
+  root.innerHTML = '';
+  for(const member of problem.party){
+    const row = document.createElement('div');
+    row.className = `member ${member.role === selfRole ? 'me' : ''}`;
+    row.onclick = () => {
+      selfRole = member.role;
+      localStorage.setItem('p5_threestars_self_role', selfRole);
+      render();
+    };
+    row.innerHTML = buildMemberRowHtml(member);
+    root.appendChild(row);
+  }
+  renderStickySelf();
+  updateStickySelf();
+}
+
+function buildMemberRowHtml(member){
+  const youHtml = member.role === selfRole ? '<span class="you-dot">YOU</span>' : '';
+  return `
+    <div class="rolecell">${youHtml}<div class="role">${member.role}</div></div>
+    <div class="debuffs">${renderDebuffsForMember(member)}</div>
+  `;
+}
+
+function renderDebuffsForMember(member){
+  const debuffs = getVisibleDebuffsForMember(member);
+  if(debuffs.length === 0){
+    return detailDebuff && member.debuff === 'none' ? '<div class="badge none">無職</div>' : '<div class="empty-badge"></div>';
+  }
+  return debuffs.map(element => {
+    const badgeClass = towerClass(element);
+    const timeHtml = mode === 'practice' ? `<span class="debuff-time">${Math.ceil(getDebuffRemainingMs(member, element) / 1000)}</span>` : '';
+    if(detailDebuff){
+      return `<div class="badge ${badgeClass}" style="position:relative">${DEBUFF_DETAIL_LABEL[element]}${timeHtml}</div>`;
+    }
+    return `<div class="badge ${badgeClass} icon-badge"><img class="debuff-icon" src="${DEBUFF_ICON[element]}" alt="${DEBUFF_DETAIL_LABEL[element]}">${timeHtml}</div>`;
+  }).join('');
+}
+
+function getVisibleDebuffsForMember(member){
+  const active = new Set();
+  if(mode === 'practice'){
+    if(!practiceStartedAt || practicePhase === 'countdown' || practicePhase === 'idle') return [];
+    for(const element of DEBUFF_ORDER){
+      if(getDebuffRemainingMs(member, element) > 0) active.add(element);
+    }
+    return DEBUFF_ORDER.filter(element => active.has(element));
+  }
+  if(member.debuff !== 'none' && currentRound < 2){
+    active.add(member.debuff);
+  }
+  const completedRounds = Math.min(currentRound, problem.rounds.length - 1);
+  for(let roundIndex=0; roundIndex<completedRounds; roundIndex++){
+    const towerIndex = getSteppedTowerForMember(member, roundIndex);
+    active.add(problem.towers[towerIndex].element);
+  }
+  if(revealed && selectedTower != null){
+    const towerIndex = getSteppedTowerForMember(member, currentRound);
+    active.add(problem.towers[towerIndex].element);
+  }
+  return DEBUFF_ORDER.filter(element => active.has(element));
+}
+
+function getPracticeElapsedMs(){
+  if(!practiceStartedAt || practicePhase === 'countdown' || practicePhase === 'idle') return 0;
+  const refTime = practicePaused ? practicePausedAt : performance.now();
+  return Math.max(0, refTime - practiceStartedAt);
+}
+
+function getDebuffRemainingMs(member, element){
+  if(mode !== 'practice'){
+    return getVisibleDebuffsForMember(member).includes(element) ? ADDED_DEBUFF_MS : 0;
+  }
+  const elapsed = getPracticeElapsedMs();
+  let remaining = 0;
+  if(member.debuff === element){
+    remaining = Math.max(remaining, INITIAL_DEBUFF_MS - elapsed);
+  }
+  for(let roundIndex=0; roundIndex<3; roundIndex++){
+    if(elapsed < PRACTICE_HIT_TIMES_MS[roundIndex]) continue;
+    const towerIndex = getSteppedTowerForMember(member, roundIndex);
+    if(towerIndex == null) continue;
+    if(problem.towers[towerIndex].element === element){
+      remaining = Math.max(remaining, ADDED_DEBUFF_MS - (elapsed - PRACTICE_HIT_TIMES_MS[roundIndex]));
+    }
+  }
+  return Math.max(0, remaining);
+}
+
+function getSteppedTowerForMember(member, roundIndex){
+  if(member.role === selfRole){
+    const result = problemResults[roundIndex];
+    if(result && result.selected != null) return result.selected;
+    if(roundIndex === currentRound && revealed && selectedTower != null) return selectedTower;
+  }
+  return getCorrectTowerForMember(member, roundIndex);
+}
+
+function renderStickySelf(){
+  const sticky = document.getElementById('stickySelf');
+  const member = getMe();
+  sticky.innerHTML = `<div class="member me">${buildMemberRowHtml(member)}</div>`;
+}
+
+function renderJudge(){
+  const me = getMe();
+  const correct = getCorrectTower();
+  const round = problem.rounds[currentRound];
+  const litElements = ELEMENTS.map(element => {
+    const count = round.lit.filter(idx => problem.towers[idx].element === element).length;
+    return `${ELEMENT_LABEL[element]}${count}`;
+  }).join(' / ');
+  const partner = problem.party.find(member => member.role !== selfRole && member.debuff === me.debuff);
+
+  let rule;
+  if(me.debuff === 'none'){
+    rule = `初期無職：毎回2本光っている${ELEMENT_LABEL[round.doubleElement]}塔へ`;
+  }else{
+    rule = `${DEBUFF_DETAIL_LABEL[me.debuff]}：${ELEMENT_LABEL[me.debuff]}塔から時計回りに1回ごと次の属性塔へ`;
+  }
+  const answerLine = revealed ? `<br>正解：塔${correct + 1}` : '';
+  const partnerLine = partner ? `<br>${partner.role}と同じ塔に入る` : '';
+  document.getElementById('judgeText').innerHTML =
+    `${currentRound + 1}回目：${litElements}<br>${catastropheGuide()}<br>${selfRole}は <b>${DEBUFF_DETAIL_LABEL[me.debuff]}</b>。${rule}${partnerLine}${answerLine}`;
+
+  const result = document.getElementById('resultText');
+  result.className = 'result';
+  if(!revealed){
+    result.textContent = selectedTower == null ? '丸い塔をクリックして回答' : `選択中：塔${selectedTower + 1}`;
+    return;
+  }
+  if(selectedTower === correct){
+    if(isSelectedPlacementSafe()){
+      result.classList.add('ok');
+      result.textContent = '正解';
+    }else{
+      result.classList.add('ng');
+      result.textContent = '塔は合っていますが、塔内の中外位置が違います';
+    }
+  }else{
+    result.classList.add('ng');
+    result.textContent = selectedTower == null ? `未回答：正解は塔${correct + 1}` : `不正解：正解は塔${correct + 1}`;
+  }
+}
+
+function renderScore(){
+  const total = score.ok + score.ng;
+  const rate = total ? Math.round(score.ok / total * 100) : 0;
+  document.getElementById('scoreText').textContent = `正解 ${score.ok} / 不正解 ${score.ng} / 正解率 ${rate}%`;
+}
+
+function renderAnswerFlash(){
+  const flash = document.getElementById('answerFlash');
+  if(!flash) return;
+  flash.className = 'answer-flash';
+  flash.textContent = '';
+  if(mode !== 'practice' || !revealed || practicePhase !== 'reveal') return;
+  const result = problemResults[currentRound];
+  if(!result) return;
+  const correctLabel = `正解塔：塔${result.correct + 1}`;
+  flash.classList.add('show', result.ok ? 'ok' : 'ng');
+  if(result.ok){
+    flash.innerHTML = `正解<small>${correctLabel}</small>`;
+  }else{
+    flash.innerHTML = `不正解<small>${result.reason} / ${correctLabel}</small>`;
+  }
+}
+
+function renderControls(){
+  document.body.classList.toggle('practice-mode', mode === 'practice');
+  document.getElementById('modePositionBtn').className = mode === 'position' ? 'active' : '';
+  document.getElementById('modePracticeBtn').className = mode === 'practice' ? 'active' : '';
+  document.getElementById('oneByOneCheck').checked = oneByOne;
+  document.getElementById('detailDebuffCheck').checked = detailDebuff;
+  document.getElementById('markerOrderBtn').textContent = markerOrder;
+  document.getElementById('slideNo').textContent = `${currentRound + 1}/${problem.rounds.length}`;
+  renderPracticeOverlays();
+}
+
+function render(){
+  renderRoleButtons();
+  renderField();
+  renderRoundCards();
+  renderParty();
+  renderJudge();
+  renderScore();
+  renderControls();
+}
+
+function getMe(){
+  return problem.party.find(m => m.role === selfRole) || problem.party[0];
+}
+
+function clockwiseOf(index){
+  return (index + 1) % 9;
+}
+
+function getSvgPoint(event){
+  const svg = document.getElementById('field');
+  const pt = svg.createSVGPoint();
+  pt.x = event.clientX;
+  pt.y = event.clientY;
+  const out = pt.matrixTransform(svg.getScreenCTM().inverse());
+  return {x: out.x, y: out.y};
+}
+
+function clampToField(point){
+  const dx = point.x - 50;
+  const dy = point.y - 50;
+  const r = Math.hypot(dx, dy);
+  if(r <= 45) return point;
+  const scale = 45 / r;
+  return {x:50 + dx * scale, y:50 + dy * scale};
+}
+
+function handleFieldClick(event){
+  if(mode !== 'practice' || revealed || practicePaused || practicePhase !== 'question') return;
+  setPracticePlayerPoint(getSvgPoint(event));
+}
+
+function setPracticePlayerPoint(point){
+  playerPoint = clampToField(point);
+  selectedPoint = playerPoint;
+  selectedTower = getTowerAtPoint(playerPoint);
+  renderField();
+  renderJudge();
+}
+
+function getTowerAtPoint(point){
+  for(const tower of problem.towers){
+    if(Math.hypot(point.x - tower.x, point.y - tower.y) <= 7.7) return tower.index;
+  }
+  return null;
+}
+
+function radiusFromCenter(point){
+  if(!point) return null;
+  return Math.hypot(point.x - 50, point.y - 50);
+}
+
+function isSelectedPlacementSafe(){
+  const round = problem.rounds[currentRound];
+  if(!round.catastrophe || selectedTower == null || !selectedPoint) return true;
+  const tower = problem.towers[selectedTower];
+  const clickedR = radiusFromCenter(selectedPoint);
+  const towerR = radiusFromCenter(tower);
+  if(round.catastrophe === 'wind') return clickedR <= towerR;
+  if(round.catastrophe === 'earth') return clickedR >= towerR;
+  return true;
+}
+
+function catastropheGuide(){
+  const round = problem.rounds[currentRound];
+  if(round.catastrophe === 'wind') return '風(緑)：外側ドーナツ範囲を踏まない。塔の中でも内寄りへ';
+  if(round.catastrophe === 'earth') return '土(黄)：中央円範囲を踏まない。塔の中でも外寄りへ';
+  return 'カタストロフィなし';
+}
+
+function litSourcesFor(element){
+  return litSourcesForRound(currentRound, element);
+}
+
+function litSourcesForRound(roundIndex, element){
+  const round = problem.rounds[roundIndex];
+  return round.lit
+    .filter(index => problem.towers[index].element === element)
+    .sort((a,b)=>a-b);
+}
+
+function clockwiseNextElement(element){
+  return clockwiseElementAfterSteps(element, 1);
+}
+
+function clockwiseElementAfterSteps(element, steps){
+  const groups = [problem.towers[0].element, problem.towers[3].element, problem.towers[6].element];
+  const index = groups.indexOf(element);
+  return groups[(index + steps) % groups.length];
+}
+
+function getCorrectTower(){
+  return getCorrectTowerForMember(getMe(), currentRound);
+}
+
+function getCorrectTowerForMember(member, roundIndex){
+  const me = getMe();
+  const target = member || me;
+  const round = problem.rounds[roundIndex];
+  if(target.debuff === 'none'){
+    const sources = litSourcesForRound(roundIndex, round.doubleElement);
+    return sources[sources.length - 1];
+  }
+  const nextElement = clockwiseElementAfterSteps(target.debuff, roundIndex + 1);
+  const sources = litSourcesForRound(roundIndex, nextElement);
+  return sources[0];
+}
+
+function chooseTower(index, event){
+  if(revealed) return;
+  if(mode === 'practice'){
+    if(practicePaused || practicePhase !== 'question') return;
+    setPracticePlayerPoint(getSvgPoint(event));
+    return;
+  }
+  selectedTower = index;
+  selectedPoint = getSvgPoint(event);
+  revealAnswer();
+}
+
+function getAnswerReason(selected, correct, placementOk){
+  if(selected == null) return '未回答';
+  if(selected !== correct) return '塔が違う';
+  if(!placementOk) return '内外が違う';
+  return '正解';
+}
+
+function revealAnswer(){
+  if(revealed) return;
+  clearAutoTimer();
+  revealed = true;
+  const correct = getCorrectTower();
+  const placementOk = isSelectedPlacementSafe();
+  const ok = selectedTower === correct && placementOk;
+  const reason = getAnswerReason(selectedTower, correct, placementOk);
+  problemResults[currentRound] = {
+    round: currentRound + 1,
+    role: selfRole,
+    debuff: getMe().debuff,
+    selected: selectedTower,
+    correct,
+    ok,
+    reason
+  };
+  recordAnswerEvent(problemResults[currentRound]);
+  if(ok){
+    score.ok++;
+    log(`正解：${currentRound + 1}回目 ${selfRole} 塔${correct + 1}`, 'ok');
+  }else{
+    score.ng++;
+    log(`${selectedTower == null ? '未回答' : '不正解'}：${reason}`, 'ng');
+  }
+  saveScore();
+  render();
+  scheduleAfterReveal();
+}
+
+function setRound(index){
+  clearAutoTimer();
+  if(mode === 'practice'){
+    setPracticeRoundFromNav(index);
+    return;
+  }
+  stopPracticeTimers();
+  currentRound = Math.max(0, Math.min(2, index));
+  selectedTower = null;
+  selectedPoint = null;
+  revealed = false;
+  markAnswerStart();
+  render();
+}
+
+function slideNext(){
+  clearAutoTimer();
+  if(currentRound < 2){
+    setRound(currentRound + 1);
+  }else if(mode === 'practice'){
+    loadNextPracticeProblemFromNav();
+  }else{
+    loadNextProblem();
+  }
+}
+
+function slidePrev(){
+  clearAutoTimer();
+  if(currentRound > 0){
+    setRound(currentRound - 1);
+  }else if(mode === 'practice'){
+    loadPreviousPracticeProblemFromNav();
+  }else{
+    loadPreviousProblem();
+  }
+}
+
+function getPracticeRoundStartElapsed(roundIndex){
+  if(roundIndex <= 0) return 0;
+  if(roundIndex === 1) return PRACTICE_HIT_TIMES_MS[0] + PRACTICE_REVEAL_MS;
+  return PRACTICE_HIT_TIMES_MS[1] + PRACTICE_REVEAL_MS;
+}
+
+function setPracticeRoundFromNav(index){
+  const targetRound = Math.max(0, Math.min(2, index));
+  const wasPaused = practicePaused;
+  const wasActive = practiceRunning && practicePhase !== 'idle' && practicePhase !== 'result';
+  currentRound = targetRound;
+  markAnswerStart();
+  revealed = false;
+  selectedPoint = playerPoint;
+  selectedTower = getTowerAtPoint(playerPoint);
+  lastCastVisible = null;
+
+  if(!wasActive){
+    practiceRunning = false;
+    practicePaused = false;
+    practicePhase = 'idle';
+    practiceStartedAt = 0;
+    setTimerRatio(1);
+    render();
+    return;
+  }
+
+  const now = performance.now();
+  practiceRunning = true;
+  practicePaused = wasPaused;
+  practicePhase = 'question';
+  practiceStartedAt = now - getPracticeRoundStartElapsed(currentRound);
+  practicePhaseStartedAt = now;
+  practicePhaseDuration = PRACTICE_QUESTION_MS[currentRound];
+  practicePausedRemaining = practicePhaseDuration;
+  practicePausedAt = now;
+  setTimerRatio(1);
+
+  if(practicePaused){
+    if(practiceRaf){
+      cancelAnimationFrame(practiceRaf);
+      practiceRaf = null;
+    }
+  }else{
+    startPracticeRaf();
+  }
+  render();
+}
+
+function capturePracticeNavState(){
+  return {
+    active: practiceRunning && practicePhase !== 'idle' && practicePhase !== 'result',
+    paused: practicePaused
+  };
+}
+
+function applyPracticeNavState(state, targetRound){
+  currentRound = Math.max(0, Math.min(2, targetRound));
+  markAnswerStart();
+  revealed = false;
+  selectedPoint = playerPoint;
+  selectedTower = getTowerAtPoint(playerPoint);
+  lastCastVisible = null;
+  if(!state.active){
+    practiceRunning = false;
+    practicePaused = false;
+    practicePhase = 'idle';
+    practiceStartedAt = 0;
+    setTimerRatio(1);
+    render();
+    return;
+  }
+  const now = performance.now();
+  practiceRunning = true;
+  practicePaused = state.paused;
+  practicePhase = 'question';
+  practiceStartedAt = now - getPracticeRoundStartElapsed(currentRound);
+  practicePhaseStartedAt = now;
+  practicePhaseDuration = PRACTICE_QUESTION_MS[currentRound];
+  practicePausedRemaining = practicePhaseDuration;
+  practicePausedAt = now;
+  setTimerRatio(1);
+  if(practicePaused){
+    if(practiceRaf){
+      cancelAnimationFrame(practiceRaf);
+      practiceRaf = null;
+    }
+  }else{
+    startPracticeRaf();
+  }
+  render();
+}
+
+function loadNextPracticeProblemFromNav(){
+  const navState = capturePracticeNavState();
+  clearAutoTimer();
+  stopPracticeTimers();
+  problem = makeProblem();
+  problemHistory = problemHistory.slice(0, historyIndex + 1);
+  problemHistory.push(problem);
+  historyIndex = problemHistory.length - 1;
+  selectedTower = null;
+  selectedPoint = null;
+  revealed = false;
+  problemResults = [];
+  resetPracticePlayer(true);
+  log('次の問題へ移動', 'sys');
+  applyPracticeNavState(navState, 0);
+}
+
+function loadPreviousPracticeProblemFromNav(){
+  const navState = capturePracticeNavState();
+  if(historyIndex <= 0){
+    log('前の問題はありません', 'sys');
+    render();
+    return;
+  }
+  clearAutoTimer();
+  stopPracticeTimers();
+  historyIndex--;
+  problem = problemHistory[historyIndex];
+  selectedTower = null;
+  selectedPoint = null;
+  revealed = false;
+  problemResults = [];
+  resetPracticePlayer(true);
+  markAnswerStart();
+  log('前の問題へ移動', 'sys');
+  applyPracticeNavState(navState, problem.rounds.length - 1);
+}
+
+function newProblem(){
+  clearAutoTimer();
+  stopPracticeTimers();
+  problem = makeProblem();
+  problemHistory = problemHistory.slice(0, historyIndex + 1);
+  problemHistory.push(problem);
+  historyIndex = problemHistory.length - 1;
+  currentRound = 0;
+  selectedTower = null;
+  selectedPoint = null;
+  revealed = false;
+  problemResults = [];
+  resetPracticePlayer(true);
+  markAnswerStart();
+  log('新しい問題を作成', 'sys');
+  render();
+  if(mode === 'practice') preparePracticeStart();
+}
+
+function loadNextProblem(){
+  newProblem();
+}
+
+function loadPreviousProblem(){
+  stopPracticeTimers();
+  if(historyIndex <= 0){
+    log('前の問題はありません', 'sys');
+    render();
+    return;
+  }
+  historyIndex--;
+  problem = problemHistory[historyIndex];
+  currentRound = problem.rounds.length - 1;
+  selectedTower = null;
+  selectedPoint = null;
+  revealed = false;
+  problemResults = [];
+  resetPracticePlayer(true);
+  markAnswerStart();
+  log('前の問題へ移動', 'sys');
+  render();
+  if(mode === 'practice') preparePracticeStart();
+}
+
+function setMode(nextMode){
+  clearAutoTimer();
+  stopPracticeTimers();
+  mode = nextMode;
+  localStorage.setItem(MODE_KEY, mode);
+  selectedTower = null;
+  selectedPoint = null;
+  revealed = false;
+  problemResults = [];
+  resetPracticePlayer(true);
+  markAnswerStart();
+  render();
+  if(mode === 'practice') preparePracticeStart();
+}
+
+function toggleOneByOne(checked){
+  oneByOne = checked;
+  renderControls();
+}
+
+function toggleMarkerOrder(){
+  markerOrder = markerOrder === '2341' ? '1234' : '2341';
+  localStorage.setItem(MARKER_ORDER_KEY, markerOrder);
+  render();
+}
+
+function toggleDetailDebuff(checked){
+  detailDebuff = checked;
+  renderParty();
+  renderControls();
+}
+
+function clearAutoTimer(){
+  if(autoTimer){
+    clearTimeout(autoTimer);
+    autoTimer = null;
+  }
+}
+
+function scheduleAfterReveal(){
+  const isLastRound = currentRound >= problem.rounds.length - 1;
+  if(mode === 'practice'){
+    startPracticeRevealPhase(isLastRound);
+    return;
+  }
+  if(mode === 'position'){
+    if(oneByOne) return;
+    autoTimer = setTimeout(() => {
+      if(isLastRound) loadNextProblem();
+      else setRound(currentRound + 1);
+    }, ANSWER_DELAY_MS);
+    return;
+  }
+
+  if(!isLastRound){
+    autoTimer = setTimeout(() => setRound(currentRound + 1), ANSWER_DELAY_MS);
+    return;
+  }
+
+  logPracticeSummary();
+  if(!oneByOne){
+    autoTimer = setTimeout(() => loadNextProblem(), NEXT_PROBLEM_DELAY_MS);
+  }
+}
+
+function logPracticeSummary(){
+  const okCount = problemResults.filter(r => r && r.ok).length;
+  const total = problem.rounds.length;
+  log(`実践結果：${okCount}/${total}`, okCount === total ? 'ok' : 'ng');
+}
+
+function resetPracticePlayer(resetToCenter){
+  if(resetToCenter) playerPoint = {x:50, y:50};
+  selectedPoint = mode === 'practice' ? playerPoint : null;
+  selectedTower = mode === 'practice' ? getTowerAtPoint(playerPoint) : null;
+}
+
+function preparePracticeStart(){
+  clearAutoTimer();
+  stopPracticeTimers();
+  practiceStartedAt = 0;
+  practicePaused = false;
+  practicePhase = 'idle';
+  currentRound = 0;
+  revealed = false;
+  selectedTower = null;
+  selectedPoint = null;
+  problemResults = [];
+  resetPracticePlayer(true);
+  markAnswerStart();
+  setTimerRatio(1);
+  renderPracticeOverlays();
+  render();
+}
+
+function beginPracticeCountdown(){
+  if(mode !== 'practice') return;
+  clearAutoTimer();
+  stopPracticeTimers();
+  practiceStartedAt = 0;
+  currentRound = 0;
+  revealed = false;
+  problemResults = [];
+  resetPracticePlayer(true);
+  practiceRunning = true;
+  practicePaused = false;
+  practicePhase = 'countdown';
+  practicePhaseStartedAt = performance.now();
+  practicePhaseDuration = 3000;
+  practiceCountRemaining = 3;
+  startInputLoop();
+  startPracticeRaf();
+  render();
+}
+
+function restartPracticeProblem(){
+  beginPracticeCountdown();
+}
+
+function startPracticeRound(){
+  if(mode !== 'practice') return;
+  clearAutoTimer();
+  lastCastVisible = null;
+  revealed = false;
+  selectedPoint = playerPoint;
+  selectedTower = getTowerAtPoint(playerPoint);
+  practiceRunning = true;
+  practicePhase = 'question';
+  practicePhaseStartedAt = performance.now();
+  practicePhaseDuration = PRACTICE_QUESTION_MS[currentRound];
+  markAnswerStart();
+  setTimerRatio(1);
+  startPracticeRaf();
+  render();
+}
+
+function startPracticeRevealPhase(isLastRound){
+  practicePhase = 'reveal';
+  practicePhaseStartedAt = performance.now();
+  practicePhaseDuration = PRACTICE_REVEAL_MS;
+  setTimerRatio(0);
+  startPracticeRaf();
+  render();
+}
+
+function startPracticeRaf(){
+  if(practiceRaf) cancelAnimationFrame(practiceRaf);
+  const tick = () => {
+    if(mode !== 'practice') return;
+    updatePracticeTimer();
+    practiceRaf = requestAnimationFrame(tick);
+  };
+  practiceRaf = requestAnimationFrame(tick);
+}
+
+function updatePracticeTimer(){
+  if(practicePaused) return;
+  const elapsed = performance.now() - practicePhaseStartedAt;
+  const remain = Math.max(0, practicePhaseDuration - elapsed);
+  const label = document.getElementById('timerLabel');
+  if(practicePhase === 'question'){
+    const ratio = practicePhaseDuration ? Math.max(0, Math.min(1, remain / practicePhaseDuration)) : 0;
+    setTimerRatio(ratio);
+  }
+  if(label){
+    if(practicePhase === 'question') label.textContent = `${currentRound + 1}回目 発動まで`;
+    else if(practicePhase === 'reveal') label.textContent = `${currentRound + 1}回目 回答表示`;
+    else if(practicePhase === 'result') label.textContent = '結果表示';
+    else if(practicePhase === 'countdown') label.textContent = '開始カウント';
+    else label.textContent = '開始待ち';
+  }
+  if(practicePhase === 'question'){
+    const castVisible = shouldShowCatastropheCast();
+    if(castVisible !== lastCastVisible){
+      lastCastVisible = castVisible;
+      renderField();
+    }
+  }
+  if(practicePhase === 'countdown'){
+    practiceCountRemaining = Math.max(1, Math.ceil(remain / 1000));
+    renderPracticeOverlays();
+    if(remain <= 0){
+      practiceStartedAt = performance.now();
+      lastDebuffTick = null;
+      startPracticeRound();
+    }
+    return;
+  }
+  if(practicePhase === 'question' && remain <= 0 && !revealed){
+    selectedPoint = playerPoint;
+    selectedTower = getTowerAtPoint(playerPoint);
+    revealAnswer();
+    return;
+  }
+  if(practicePhase === 'reveal' && remain <= 0){
+    const isLastRound = currentRound >= problem.rounds.length - 1;
+    if(isLastRound){
+      logPracticeSummary();
+      practicePhase = 'result';
+      practicePhaseStartedAt = performance.now();
+      practicePhaseDuration = PRACTICE_RESULT_MS;
+      setTimerRatio(0);
+      render();
+      return;
+    }else{
+      currentRound++;
+      revealed = false;
+      selectedTower = getTowerAtPoint(playerPoint);
+      selectedPoint = playerPoint;
+      startPracticeRound();
+    }
+  }
+  if(practicePhase === 'result' && remain <= 0 && !oneByOne){
+    newProblem();
+    if(mode === 'practice') beginPracticeCountdown();
+    return;
+  }
+  const debuffTick = Math.ceil(getPracticeElapsedMs() / 1000);
+  if(debuffTick !== lastDebuffTick){
+    lastDebuffTick = debuffTick;
+    renderParty();
+  }
+  renderPracticeOverlays();
+}
+
+function setTimerRatio(ratio){
+  const fill = document.getElementById('timerFill');
+  if(fill) fill.style.transform = `scaleX(${Math.max(0, Math.min(1, ratio))})`;
+}
+
+function stopPracticeTimers(){
+  practiceRunning = false;
+  practicePhase = 'idle';
+  practicePaused = false;
+  if(practiceRaf){
+    cancelAnimationFrame(practiceRaf);
+    practiceRaf = null;
+  }
+  renderPracticeOverlays();
+}
+
+function practiceStartPauseResume(){
+  if(mode !== 'practice') return;
+  if(practicePhase === 'idle' || practicePhase === 'result' || !practiceRunning){
+    beginPracticeCountdown();
+    return;
+  }
+  if(practicePaused){
+    resumePractice();
+  }else{
+    pausePractice();
+  }
+}
+
+function pausePractice(){
+  if(mode !== 'practice' || practicePaused || practicePhase === 'idle' || practicePhase === 'result') return;
+  practicePaused = true;
+  practicePausedAt = performance.now();
+  practicePausedRemaining = Math.max(0, practicePhaseDuration - (performance.now() - practicePhaseStartedAt));
+  if(practiceRaf){
+    cancelAnimationFrame(practiceRaf);
+    practiceRaf = null;
+  }
+  renderPracticeOverlays();
+}
+
+function resumePractice(){
+  if(mode !== 'practice' || !practicePaused) return;
+  const pausedDuration = performance.now() - practicePausedAt;
+  if(practiceStartedAt) practiceStartedAt += pausedDuration;
+  practicePaused = false;
+  practicePhaseStartedAt = performance.now() - (practicePhaseDuration - practicePausedRemaining);
+  startPracticeRaf();
+  renderPracticeOverlays();
+}
+
+function renderPracticeOverlays(){
+  const startOverlay = document.getElementById('practiceStartOverlay');
+  const countOverlay = document.getElementById('practiceCountOverlay');
+  const resultOverlay = document.getElementById('practiceResultOverlay');
+  const countText = document.getElementById('practiceCountText');
+  const title = document.getElementById('practiceResultTitle');
+  const text = document.getElementById('practiceResultText');
+  const mainBtns = [document.getElementById('timerMainBtn2')];
+  if(startOverlay) startOverlay.classList.toggle('show', mode === 'practice' && practicePhase === 'idle');
+  if(countOverlay) countOverlay.classList.toggle('show', mode === 'practice' && practicePhase === 'countdown');
+  if(countText) countText.textContent = practicePaused ? '停止' : String(practiceCountRemaining);
+  const isResult = mode === 'practice' && practicePhase === 'result';
+  if(resultOverlay) resultOverlay.classList.toggle('show', isResult);
+  if(isResult){
+    const okCount = problemResults.filter(r => r && r.ok).length;
+    const total = problem.rounds.length;
+    if(title){
+      title.className = `practice-result-title ${okCount === total ? 'ok' : 'ng'}`;
+      title.textContent = okCount === total ? '全問正解' : '結果';
+    }
+    if(text) text.textContent = `${okCount}/${total} 正解`;
+  }
+  const label = practicePhase === 'idle' || practicePhase === 'result' || !practiceRunning ? 'スタート' : practicePaused ? '再開' : '一時停止';
+  for(const btn of mainBtns){
+    if(btn) btn.textContent = label;
+  }
+}
+
+function startInputLoop(){
+  if(inputRaf) return;
+  lastFrameAt = performance.now();
+  const tick = (now) => {
+    const dt = Math.min(0.05, Math.max(0, (now - lastFrameAt) / 1000));
+    lastFrameAt = now;
+    if(mode === 'practice' && !revealed && !practicePaused && practicePhase === 'question'){
+      movePlayerFromInput(dt);
+      pollGamepad(dt);
+    }
+    inputRaf = requestAnimationFrame(tick);
+  };
+  inputRaf = requestAnimationFrame(tick);
+}
+
+function movePlayerFromInput(dt){
+  let dx = 0;
+  let dy = 0;
+  if(keyState.has('w') || keyState.has('arrowup')) dy -= 1;
+  if(keyState.has('s') || keyState.has('arrowdown')) dy += 1;
+  if(keyState.has('a') || keyState.has('arrowleft')) dx -= 1;
+  if(keyState.has('d') || keyState.has('arrowright')) dx += 1;
+  if(dx || dy) movePracticePlayer(dx, dy, dt);
+}
+
+function pollGamepad(dt){
+  const pads = navigator.getGamepads ? navigator.getGamepads() : [];
+  for(const pad of pads){
+    if(!pad) continue;
+    let dx = Math.abs(pad.axes[0] || 0) > .18 ? pad.axes[0] : 0;
+    let dy = Math.abs(pad.axes[1] || 0) > .18 ? pad.axes[1] : 0;
+    if(pad.buttons[14]?.pressed) dx -= 1;
+    if(pad.buttons[15]?.pressed) dx += 1;
+    if(pad.buttons[12]?.pressed) dy -= 1;
+    if(pad.buttons[13]?.pressed) dy += 1;
+    if(dx || dy) movePracticePlayer(dx, dy, dt);
+    break;
+  }
+}
+
+function movePracticePlayer(dx, dy, dt){
+  const len = Math.hypot(dx, dy) || 1;
+  playerPoint = clampToField({
+    x: playerPoint.x + (dx / len) * PLAYER_SPEED * dt,
+    y: playerPoint.y + (dy / len) * PLAYER_SPEED * dt
+  });
+  selectedPoint = playerPoint;
+  selectedTower = getTowerAtPoint(playerPoint);
+  renderField();
+  renderJudge();
+}
+
+function prevRound(){
+  slidePrev();
+}
+
+function nextRound(){
+  slideNext();
+}
+
+function initProblem(){
+  problem = makeProblem();
+  problemHistory = [problem];
+  historyIndex = 0;
+  currentRound = 0;
+  selectedTower = null;
+  selectedPoint = null;
+  revealed = false;
+  problemResults = [];
+  markAnswerStart();
+  log('新しい問題を作成', 'sys');
+  render();
+}
+
+function log(text, type='sys'){
+  const box = document.getElementById('logBox');
+  const row = document.createElement('div');
+  row.className = type;
+  row.textContent = text;
+  box.prepend(row);
+  while(box.children.length > 40) box.removeChild(box.lastChild);
+}
+
+function updateStickySelf(){
+  const sticky = document.getElementById('stickySelf');
+  const selfRow = document.querySelector('#partyList .member.me');
+  if(!sticky || !selfRow || window.innerWidth > 1050){
+    sticky?.classList.remove('show');
+    return;
+  }
+  const rect = selfRow.getBoundingClientRect();
+  sticky.classList.toggle('show', rect.top < 6);
+}
+
+window.addEventListener('scroll', updateStickySelf, {passive:true});
+window.addEventListener('resize', updateStickySelf);
+window.addEventListener('keydown', event => {
+  const key = event.key.toLowerCase();
+  if(['w','a','s','d','arrowup','arrowdown','arrowleft','arrowright'].includes(key)){
+    keyState.add(key);
+    if(mode === 'practice') event.preventDefault();
+  }
+});
+window.addEventListener('keyup', event => {
+  keyState.delete(event.key.toLowerCase());
+});
+
+updateAnswerLogToggleButton();
+newProblem();
+</script>
+  <!-- Cloudflare Web Analytics --><script defer src='https://static.cloudflareinsights.com/beacon.min.js' data-cf-beacon='{"token": "69e65a6b5ec64e5bb4b6a6c1c07c4667"}'></script><!-- End Cloudflare Web Analytics -->
+</body>
+</html>
