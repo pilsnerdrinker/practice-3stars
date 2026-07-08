@@ -218,8 +218,8 @@ svg text{pointer-events:none;user-select:none}
           <g id="playerLayer"></g>
           <g id="answerTextLayer"></g>
         </svg>
-        <div class="safe-note" id="safeNote">カタストロフィなし</div>
-        <div class="cast-note" id="castNote">2択のカタストロフィ詠唱中</div>
+        <div class="safe-note" id="safeNote">カタストロフなし</div>
+        <div class="cast-note" id="castNote">2択のカタストロフ詠唱中</div>
         <div class="slide-nav">
           <button type="button" onclick="slidePrev()">＜</button>
           <span id="slideNo">1/3</span>
@@ -735,14 +735,14 @@ function renderField(){
   }else if(round.catastrophe === 'wind'){
     safeNote.style.display = '';
     safeNote.classList.add('wind');
-    safeNote.textContent = `${currentRound + 1}回目：風カタストロフィ = 中安置`;
+    safeNote.textContent = `${currentRound + 1}回目：風カタストロフ = 中安置`;
   }else if(round.catastrophe === 'earth'){
     safeNote.style.display = '';
     safeNote.classList.add('earth');
-    safeNote.textContent = `${currentRound + 1}回目：土カタストロフィ = 外安置`;
+    safeNote.textContent = `${currentRound + 1}回目：土カタストロフ = 外安置`;
   }else{
     safeNote.style.display = '';
-    safeNote.textContent = `${currentRound + 1}回目：カタストロフィなし`;
+    safeNote.textContent = `${currentRound + 1}回目：カタストロフなし`;
   }
   renderCastNote();
 }
@@ -774,7 +774,7 @@ function renderCastNote(){
   note.className = 'cast-note';
   if(shouldShowCatastropheCast()){
     note.classList.add('show', round.catastrophe);
-    note.textContent = '2択のカタストロフィ詠唱中';
+    note.textContent = '2択のカタストロフ詠唱中';
   }
 }
 
@@ -1086,7 +1086,7 @@ function catastropheGuide(){
   const round = problem.rounds[currentRound];
   if(round.catastrophe === 'wind') return '風(緑)：外側ドーナツ範囲を踏まない。塔の中でも内寄りへ';
   if(round.catastrophe === 'earth') return '土(黄)：中央円範囲を踏まない。塔の中でも外寄りへ';
-  return 'カタストロフィなし';
+  return 'カタストロフなし';
 }
 
 function litSourcesFor(element){
