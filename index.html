@@ -273,8 +273,8 @@ svg text{pointer-events:none;user-select:none}
   </div>
 </div>
 <div class="privacy-note" id="privacyNote">
-  <p>この練習アプリでは、アプリ改善のため、練習ログを送信する場合があります。送信されるのは、アプリ名、モード、問題種別、正誤、回答時間など、練習内容に関する情報のみです。同じブラウザ内での練習傾向を見るため、localStorageにランダムなブラウザIDを保存します。練習ログにはIPアドレスを含めず、アプリ側でIPアドレスを保存しません。</p>
-  <button type="button" id="answerLogToggleBtn" onclick="toggleAnswerLogEnabled()">ログ送信：ON</button>
+  <p>この練習アプリでは、アプリ改善のため、練習ログを送信することができます。ログ送信はデフォルトOFFで、任意でONにできます。送信されるのは、アプリ名、モード、問題種別、正誤、回答時間など、練習内容に関する情報のみです。同じブラウザ内での練習傾向を見るため、localStorageにランダムなブラウザIDを保存します。練習ログにはIPアドレスを含めず、アプリ側でIPアドレスを保存しません。</p>
+  <button type="button" id="answerLogToggleBtn" onclick="toggleAnswerLogEnabled()">ログ送信：OFF</button>
 </div>
 <div class="copyright">© SQUARE ENIX</div>
 <div class="sticky-self" id="stickySelf"></div>
@@ -286,7 +286,7 @@ svg text{pointer-events:none;user-select:none}
 const ANSWER_LOGGER_CONFIG = {
   endpoint: 'https://practice-answer-log-api.hamlight.workers.dev/v1/answer',
   appId: 'practice-3stars',
-  appVersion: 'p5_threestars_practice_v29_d1log_toggle'
+  appVersion: 'p5_threestars_practice_v34_log_text_fix'
 };
 
 const AnswerLogger = (() => {
@@ -298,9 +298,9 @@ const AnswerLogger = (() => {
 
   function isEnabled(){
     try{
-      return localStorage.getItem(ENABLED_KEY) !== 'off';
+      return localStorage.getItem(ENABLED_KEY) === 'on';
     }catch(_){
-      return true;
+      return false;
     }
   }
 
