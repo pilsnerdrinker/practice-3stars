@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>P5 スリースターズ練習　</title>
+<title>P5 スリースターズ練習</title>
 <style>
 :root{
   --bg:#151820;--panel:#202632;--panel2:#171d27;--border:#46505f;
@@ -17,6 +17,9 @@ button{border:1px solid var(--border);border-radius:8px;background:var(--panel);
 button:hover{border-color:var(--accent)}
 button.primary{background:#2c8d7d;border-color:#55c8b4;color:#fff}
 button.active{background:#2c8d7d;border-color:#55c8b4;color:#fff;box-shadow:0 0 0 2px rgba(69,180,159,.18)}
+select{border:1px solid var(--border);border-radius:8px;background:var(--panel2);color:var(--text);font-weight:900;min-height:36px;padding:7px 30px 7px 10px;cursor:pointer}
+select:hover,select:focus{border-color:var(--accent);outline:none}
+.control-field{display:inline-flex;align-items:center;gap:6px}
 .app{width:min(1480px,calc(100% - 20px));margin:0 auto}
 .page-head{display:flex;align-items:flex-end;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:10px}
 h1{font-size:clamp(24px,3.5vw,34px);line-height:1.08;font-weight:900;letter-spacing:0}
@@ -159,6 +162,7 @@ svg text{pointer-events:none;user-select:none}
   .toolbar{align-items:flex-start}
   .main{padding:8px}
   .rolebar button{padding:7px 9px}
+  .rolebar select{min-height:34px;padding-top:6px;padding-bottom:6px}
   .member{grid-template-columns:38px minmax(0,1fr)}
   .debuffs{flex-wrap:wrap}
 }
@@ -273,7 +277,7 @@ svg text{pointer-events:none;user-select:none}
   </div>
 </div>
 <div class="privacy-note" id="privacyNote">
-  <p>成績を匿名で記録・分析するログ送信機能を付けました。作者がアプリを良くするための分析に使わせてもらいます。よければONにしてください。ログ送信はデフォルトOFFで、任意でONにできます。送信されるのは、アプリ名、モード、問題種別、正誤、回答時間など、練習内容に関する情報のみです。同じブラウザ内での練習傾向を見るため、localStorageにランダムなブラウザIDを保存します。練習ログにはIPアドレスを含めず、アプリ側でIPアドレスを保存しません。</p>
+  <p>作者がアプリを良くするための分析に使わせてもらいます。よければONにしてください。<br>ログ送信機能はデフォルトではOFFで、任意でONにできます。送信されるのは、アプリ名、モード、問題種別、正誤、回答時間など、練習内容に関する情報のみです。同じブラウザ内での練習傾向を見るため、localStorageにランダムなブラウザIDを保存します。練習ログにはIPアドレスを含めず、アプリ側でIPアドレスを保存しません。</p>
   <button type="button" id="answerLogToggleBtn" onclick="toggleAnswerLogEnabled()">ログ送信：OFF</button>
 </div>
 <div class="copyright">© SQUARE ENIX</div>
@@ -286,7 +290,7 @@ svg text{pointer-events:none;user-select:none}
 const ANSWER_LOGGER_CONFIG = {
   endpoint: 'https://practice-answer-log-api.hamlight.workers.dev/v1/answer',
   appId: 'practice-3stars',
-  appVersion: 'p5_threestars_practice_v34_log_text_fix'
+  appVersion: 'p5_threestars_practice_v38_role_debuff_select'
 };
 
 const AnswerLogger = (() => {
@@ -468,12 +472,16 @@ const PRACTICE_HIT_TIMES_MS = [10000, 17000, 23000];
 const FIRST_CATASTROPHE_APPEAR_MS = 4000;
 const INITIAL_DEBUFF_MS = 20000;
 const ADDED_DEBUFF_MS = 20000;
+const TOWER_RING_RADIUS = 28;
 const PLAYER_SPEED = 32;
 const MODE_KEY = 'p5_threestars_mode_v14';
 const MARKER_ORDER_KEY = 'p5_threestars_marker_order_v16';
 
 const SELF_ROLE_KEY = 'p5_threestars_self_role_v31';
+const SELF_DEBUFF_KEY = 'p5_threestars_self_debuff_v38';
 let selfRole = localStorage.getItem(SELF_ROLE_KEY) || 'MT';
+let selfDebuffPreference = localStorage.getItem(SELF_DEBUFF_KEY) || 'random';
+if(!['random','none','bolt','fire','ice'].includes(selfDebuffPreference)) selfDebuffPreference = 'random';
 let mode = localStorage.getItem(MODE_KEY) || 'practice';
 let markerOrder = localStorage.getItem(MARKER_ORDER_KEY) || '2341';
 if(markerOrder !== '2341' && markerOrder !== '1234') markerOrder = '2341';
@@ -585,14 +593,15 @@ function makeProblem(){
       towers.push({
         index,
         element: order[group],
-        x: 50 + Math.cos(rad)*34,
-        y: 50 + Math.sin(rad)*34
+        x: 50 + Math.cos(rad)*TOWER_RING_RADIUS,
+        y: 50 + Math.sin(rad)*TOWER_RING_RADIUS
       });
     }
   }
 
   const rounds = [];
   let previousLit = [];
+  const usedDoubleElements = new Set();
   for(let roundIndex=0; roundIndex<3; roundIndex++){
     const previousSet = new Set(previousLit);
     const availableByElement = {};
@@ -601,8 +610,15 @@ function makeProblem(){
         .filter(t => t.element === element && !previousSet.has(t.index))
         .map(t => t.index);
     }
-    const doubleCandidates = ELEMENTS.filter(element => availableByElement[element].length >= 2);
+    // 初期無職は毎回「2本光っている属性塔」を踏む。
+    // 1回目と3回目で同じ属性が2本光ると、1回目で付いた耐性低下が残ったまま
+    // 同じ属性塔を踏むことになるため、3回の2本属性は必ず3属性すべて別にする。
+    let doubleCandidates = ELEMENTS.filter(element => !usedDoubleElements.has(element) && availableByElement[element].length >= 2);
+    if(doubleCandidates.length === 0){
+      doubleCandidates = ELEMENTS.filter(element => availableByElement[element].length >= 2);
+    }
     const doubleElement = doubleCandidates[Math.floor(Math.random()*doubleCandidates.length)];
+    usedDoubleElements.add(doubleElement);
     const lit = [];
     for(const element of ELEMENTS){
       const positions = availableByElement[element];
@@ -617,26 +633,87 @@ function makeProblem(){
     previousLit = round.lit;
   }
 
-  const debuffs = shuffle(['ice','ice','fire','fire','bolt','bolt','none','none']);
-  const party = ROLES.map((role, i) => ({role, debuff: debuffs[i]}));
+  const party = makePartyWithSelfDebuffPreference();
   return {problemId: makeProblemId(), towers, rounds, party};
+}
+
+function makePartyWithSelfDebuffPreference(){
+  const counts = {ice:2, fire:2, bolt:2, none:2};
+  const assigned = {};
+  if(selfDebuffPreference !== 'random'){
+    assigned[selfRole] = selfDebuffPreference;
+    counts[selfDebuffPreference]--;
+  }
+  const pool = [];
+  for(const element of ['ice','ice','fire','fire','bolt','bolt','none','none']){
+    if(counts[element] > 0){
+      pool.push(element);
+      counts[element]--;
+    }
+  }
+  const shuffled = shuffle(pool);
+  let i = 0;
+  return ROLES.map(role => ({
+    role,
+    debuff: assigned[role] || shuffled[i++]
+  }));
+}
+
+function applySelfDebuffPreferenceToCurrentProblem(){
+  if(!problem || selfDebuffPreference === 'random') return;
+  problem.party = makePartyWithSelfDebuffPreference();
+  selectedTower = mode === 'practice' ? getTowerAtPoint(playerPoint) : null;
+  selectedPoint = mode === 'practice' ? playerPoint : null;
+  revealed = false;
+  problemResults = [];
+  markAnswerStart();
 }
 
 function renderRoleButtons(){
   const bar = document.getElementById('roleBar');
-  bar.innerHTML = '<span class="label">自分ロール</span>';
+  bar.innerHTML = `
+    <label class="control-field"><span class="label">自分ロール</span><select id="selfRoleSelect" onchange="changeSelfRole(this.value)"></select></label>
+    <label class="control-field"><span class="label">自分デバフ</span><select id="selfDebuffSelect" onchange="changeSelfDebuffPreference(this.value)"></select></label>
+  `;
+  const roleSelect = document.getElementById('selfRoleSelect');
   for(const role of ROLES){
-    const btn = document.createElement('button');
-    btn.type = 'button';
-    btn.textContent = role;
-    btn.className = role === selfRole ? 'active' : '';
-    btn.onclick = () => {
-      selfRole = role;
-      localStorage.setItem(SELF_ROLE_KEY, selfRole);
-      render();
-    };
-    bar.appendChild(btn);
+    const opt = document.createElement('option');
+    opt.value = role;
+    opt.textContent = role;
+    roleSelect.appendChild(opt);
   }
+  roleSelect.value = selfRole;
+
+  const debuffSelect = document.getElementById('selfDebuffSelect');
+  const options = [
+    ['random','ランダム'],
+    ['none','無職'],
+    ['bolt','雷'],
+    ['fire','炎'],
+    ['ice','氷']
+  ];
+  for(const [value,label] of options){
+    const opt = document.createElement('option');
+    opt.value = value;
+    opt.textContent = label;
+    debuffSelect.appendChild(opt);
+  }
+  debuffSelect.value = selfDebuffPreference;
+}
+
+function changeSelfRole(role){
+  if(!ROLES.includes(role)) return;
+  selfRole = role;
+  localStorage.setItem(SELF_ROLE_KEY, selfRole);
+  if(selfDebuffPreference !== 'random') applySelfDebuffPreferenceToCurrentProblem();
+  render();
+}
+
+function changeSelfDebuffPreference(value){
+  if(!['random','none','bolt','fire','ice'].includes(value)) value = 'random';
+  selfDebuffPreference = value;
+  localStorage.setItem(SELF_DEBUFF_KEY, selfDebuffPreference);
+  newProblem();
 }
 
 function towerClass(element){
@@ -671,12 +748,12 @@ function renderField(){
     const aoe = document.createElementNS('http://www.w3.org/2000/svg', round.catastrophe === 'wind' ? 'path' : 'circle');
     if(round.catastrophe === 'wind'){
       aoe.setAttribute('class', 'aoe donut');
-      aoe.setAttribute('d', 'M50 3a47 47 0 1 0 0 94a47 47 0 1 0 0-94 M50 16a34 34 0 1 1 0 68a34 34 0 1 1 0-68');
+      aoe.setAttribute('d', `M50 3a47 47 0 1 0 0 94a47 47 0 1 0 0-94 M50 ${50 - TOWER_RING_RADIUS}a${TOWER_RING_RADIUS} ${TOWER_RING_RADIUS} 0 1 1 0 ${TOWER_RING_RADIUS * 2}a${TOWER_RING_RADIUS} ${TOWER_RING_RADIUS} 0 1 1 0-${TOWER_RING_RADIUS * 2}`);
     }else{
       aoe.setAttribute('class', 'aoe circle');
       aoe.setAttribute('cx', '50');
       aoe.setAttribute('cy', '50');
-      aoe.setAttribute('r', '34');
+      aoe.setAttribute('r', String(TOWER_RING_RADIUS));
     }
     aoeLayer.appendChild(aoe);
   }
@@ -836,9 +913,7 @@ function renderParty(){
     const row = document.createElement('div');
     row.className = `member ${member.role === selfRole ? 'me' : ''}`;
     row.onclick = () => {
-      selfRole = member.role;
-      localStorage.setItem(SELF_ROLE_KEY, selfRole);
-      render();
+      changeSelfRole(member.role);
     };
     row.innerHTML = buildMemberRowHtml(member);
     root.appendChild(row);
