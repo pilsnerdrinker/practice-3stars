@@ -135,6 +135,11 @@ https://pilsnerdrinker.github.io/raidshelf/
 
 練習ログにはIPアドレスを含めず、アプリ側でIPアドレスを保存しません。ログ送信はいつでもOFFにできます。
 
+## 更新履歴
+### 2026-07-10
+- 無職の塔が１～３回目で異なる属性のものとなるよう修正
+- 自分のデバフを選択できるよう修正（ランダム、無職、雷、炎、氷）
+
 ## 注意
 
 この練習ページは個人制作の非公式ページです。
@@ -143,6 +148,4 @@ https://pilsnerdrinker.github.io/raidshelf/
 
 FINAL FANTASY XIV に関する権利は、権利者に帰属します。
 
-## リポジトリ
 
-https://github.com/pilsnerdrinker/practice-3stars
